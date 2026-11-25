@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>クレカ返済 アバランチ法・スノーボール法比較プランナー</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800">
+  <header class="bg-rose-700 text-white py-6 px-4 shadow-md">
+    <div class="max-w-5xl mx-auto">
+      <h1 class="text-2xl font-bold">クレカ返済 戦略比較プランナー</h1>
+      <p class="text-rose-200 text-sm mt-1">アバランチ法（高金利優先）vs スノーボール法（少額優先）を比較</p>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-8">
+    <!-- Cards Input -->
+    <section aria-label="クレジットカード情報入力" class="bg-white rounded-2xl shadow p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4 text-rose-700">クレジットカード情報（最大5枚）</h2>
+      <div id="cardsContainer" class="space-y-4"></div>
+      <button id="addCardBtn"
+        class="mt-4 text-sm text-rose-600 hover:text-rose-800 font-medium border border-rose-300 hover:border-rose-500 rounded-lg px-4 py-2 transition focus:ring-2 focus:ring-rose-400 focus:outline-none"
+        aria-label="カードを追加">
+        + カードを追加
+      </button>
+    </section>
+
+    <!-- Extra Payment -->
+    <section aria-label="追加返済予算" class="bg-white rounded-2xl shadow p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4 text-rose-700">毎月の追加返済予算</h2>
+      <div class="flex items-end gap-4">
+        <div class="flex-1 max-w-xs">
+          <label for="extraPayment" class="block text-sm font-medium text-gray-700 mb-1">追加返済額（円/月）</label>
+          <input id="extraPayment" type="number" min="0" step="1000" value="20000"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-rose-400 focus:outline-none"
+            aria-required="true" />
+        </div>
+        <button id="calcBtn"
+          class="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-8 py-2.5 rounded-xl transition focus:ring-2 focus:ring-rose-400 focus:outline-none"
+          aria-label="計算を実行">
+          計算する
+        </button>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <div id="resultsArea" class="hidden">
+      <!-- Summary Cards -->
+      <section aria-label="戦略比較サマリー" class="mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Avalanche -->
+          <div id="avalancheCard" class="bg-white rounded-2xl shadow p-6 border-2 border-transparent">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">アバランチ法</span>
+              <span class="text-xs text-gray-500">高金利から返済</span>
+            </div>
+            <div class="space-y-2">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">完済月数</span>
+                <span class="font-bold" id="avalMonths">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">総支払利息</span>
+                <span class="font-bold text-blue-700" id="avalInterest">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">総支払額</span>
+                <span class="font-bold" id="avalTotal">-</span>
+              </div>
+            </div>
+          </div>
+          <!-- Snowball -->
+          <div id="snowballCard" class="bg-white rounded-2xl shadow p-6 border-2 border-transparent">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">スノーボール法</span>
+              <span class="text-xs text-gray-500">少額から返済</span>
+            </div>
+            <div class="space-y-2">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">完済月数</span>
+                <span class="font-bold" id="snowMonths">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">総支払利息</span>
+                <span class="font-bold text-green-700" id="snowInterest">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">総支払額</span>
+                <span class="font-bold" id="snowTotal">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="winnerBanner" class="mt-4 p-4 rounded-xl text-center text-sm font-semibold"></div>
+      </section>
+
+      <!-- Payoff Order -->
+      <section aria-label="完済順序" class="bg-white rounded-2xl shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4 text-rose-700">完済順序</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <h3 class="text-sm font-medium text-blue-700 mb-2">アバランチ法</h3>
+            <ol id="avalOrder" class="space-y-1 list-decimal list-inside text-sm text-gray-700"></ol>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-green-700 mb-2">スノーボール法</h3>
+            <ol id="snowOrder" class="space-y-1 list-decimal list-inside text-sm text-gray-700"></ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- Monthly Breakdown -->
+      <section aria-label="月別返済明細" class="bg-white rounded-2xl shadow p-6">
+        <h2 class="text-lg font-semibold mb-4 text-rose-700">月別返済明細</h2>
+        <div class="flex gap-2 mb-4">
+          <button id="showAval" class="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 font-medium px-3 py-1.5 rounded-lg transition focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-pressed="true">アバランチ法</button>
+          <button id="showSnow" class="text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium px-3 py-1.5 rounded-lg transition focus:ring-2 focus:ring-gray-400 focus:outline-none" aria-pressed="false">スノーボール法</button>
+        </div>
+        <div class="overflow-x-auto max-h-80 overflow-y-auto">
+          <table class="w-full text-xs" role="table">
+            <thead class="sticky top-0 bg-white">
+              <tr class="bg-gray-100">
+                <th class="text-left px-3 py-2" scope="col">月</th>
+                <th class="text-right px-3 py-2" scope="col">総残高</th>
+                <th class="text-right px-3 py-2" scope="col">支払額</th>
+                <th class="text-right px-3 py-2" scope="col">うち利息</th>
+                <th class="text-right px-3 py-2" scope="col">うち元本</th>
+              </tr>
+            </thead>
+            <tbody id="monthlyTableBody">
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="text-center text-xs text-gray-400 py-6">
+    ※計算は日次複利（月次近似）を使用しています。実際の返済額は異なる場合があります。
+  </footer>
+
+  <script>
+    function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    const STORAGE_KEY = 'credit_planner_v1';
+    let cardCount = 0;
+    let currentBreakdown = 'avalanche';
+    let avalancheBreakdown = [];
+    let snowballBreakdown = [];
+
+    const defaultCards = [
+      { name: 'カードA', balance: 150000, apr: 18.0, minPayment: 3000 },
+      { name: 'カードB', balance: 80000, apr: 14.5, minPayment: 2000 },
+      { name: 'カードC', balance: 220000, apr: 15.0, minPayment: 4000 },
+    ];
+
+    function createCardRow(data = {}) {
+      if (cardCount >= 5) return;
+      cardCount++;
+      const id = cardCount;
+      const container = document.createElement('div');
+      container.className = 'grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200';
+      container.setAttribute('data-card-id', id);
+      container.innerHTML = `<div><label for="cardName${id}" class="block text-xs font-medium text-gray-600 mb-1">カード名</label><input id="cardName${id}" type="text" value="${escapeHtml(data.name || 'カード' + id)}" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-rose-400 focus:outline-none" aria-label="カード名" /></div><div><label for="cardBalance${id}" class="block text-xs font-medium text-gray-600 mb-1">残高（円）</label><input id="cardBalance${id}" type="number" min="0" value="${data.balance || 100000}" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-rose-400 focus:outline-none" aria-label="残高" aria-required="true" /></div><div><label for="cardApr${id}" class="block text-xs font-medium text-gray-600 mb-1">年利（%）</label><input id="cardApr${id}" type="number" min="0" max="50" step="0.1" value="${data.apr || 15.0}" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-rose-400 focus:outline-none" aria-label="年利率" aria-required="true" /></div><div class="relative"><label for="cardMin${id}" class="block text-xs font-medium text-gray-600 mb-1">最低返済額（円）</label><div class="flex items-center gap-1"><input id="cardMin${id}" type="number" min="0" value="${data.minPayment || 3000}" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-rose-400 focus:outline-none" aria-label="最低返済額" aria-required="true" />${id > 1 ? `<button onclick="removeCard(${id})" class="text-red-400 hover:text-red-600 text-lg leading-none focus:outline-none" aria-label="このカードを削除">×</button>` : ''}</div></div>`; // xss-ok: id is generated numeric id; data.balance/apr/minPayment are computed numbers; data.name uses escapeHtml
+      document.getElementById('cardsContainer').appendChild(container);
+      if (cardCount >= 5) {
+        document.getElementById('addCardBtn').disabled = true;
+        document.getElementById('addCardBtn').classList.add('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
+    function removeCard(id) {
+      const el = document.querySelector(`[data-card-id="${id}"]`);
+      if (el) {
+        el.remove();
+        document.getElementById('addCardBtn').disabled = false;
+        document.getElementById('addCardBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
+    function getCards() {
+      const containers = document.querySelectorAll('#cardsContainer [data-card-id]');
+      return Array.from(containers).map(c => {
+        const id = c.getAttribute('data-card-id');
+        return {
+          name: document.getElementById(`cardName${id}`).value || `カード${id}`,
+          balance: parseFloat(document.getElementById(`cardBalance${id}`).value) || 0,
+          apr: parseFloat(document.getElementById(`cardApr${id}`).value) || 0,
+          minPayment: parseFloat(document.getElementById(`cardMin${id}`).value) || 0,
+        };
+      }).filter(c => c.balance > 0);
+    }
+
+    function simulatePayoff(cards, extraPayment, sortFn) {
+      let debts = cards.map((c, i) => ({ ...c, id: i }));
+      debts.sort(sortFn);
+
+      let month = 0;
+      let totalInterest = 0;
+      let totalPaid = 0;
+      const breakdown = [];
+      const maxMonths = 600;
+
+      while (debts.some(d => d.balance > 0.01) && month < maxMonths) {
+        month++;
+        const totalMin = debts.filter(d => d.balance > 0).reduce((s, d) => s + d.minPayment, 0);
+        let available = totalMin + extraPayment;
+
+        let monthInterest = 0;
+        let monthPrincipal = 0;
+        let totalBalance = debts.reduce((s, d) => s + d.balance, 0);
+
+        // Apply monthly interest
+        debts.forEach(d => {
+          if (d.balance > 0) {
+            const interest = d.balance * (d.apr / 100 / 12);
+            d.balance += interest;
+            monthInterest += interest;
+            totalInterest += interest;
+          }
+        });
+
+        // Pay minimum on all, then extra on target
+        debts.forEach(d => {
+          if (d.balance > 0) {
+            const pay = Math.min(d.balance, d.minPayment);
+            d.balance -= pay;
+            available -= pay;
+            monthPrincipal += pay;
+          }
+        });
+
+        // Extra to first active debt (sorted)
+        for (let d of debts) {
+          if (d.balance > 0 && available > 0) {
+            const pay = Math.min(d.balance, available);
+            d.balance -= pay;
+            available -= pay;
+            monthPrincipal += pay;
+          }
+        }
+
+        totalPaid += monthInterest + monthPrincipal;
+        breakdown.push({
+          month,
+          totalBalance: Math.max(0, debts.reduce((s, d) => s + d.balance, 0)),
+          payment: monthInterest + monthPrincipal,
+          interest: monthInterest,
+          principal: monthPrincipal,
+        });
+      }
+
+      const totalBalance = cards.reduce((s, c) => s + c.balance, 0);
+      return { months: month, totalInterest, totalPaid: totalBalance + totalInterest, breakdown, order: [...debts] };
+    }
+
+    function calculate() {
+      const cards = getCards();
+      if (cards.length === 0) { alert('カードを最低1枚入力してください'); return; }
+
+      const extraPayment = parseFloat(document.getElementById('extraPayment').value) || 0;
+
+      // Save
+      const saveData = {
+        cards: cards,
+        extraPayment,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+
+      // Avalanche: sort by APR desc
+      const avalResult = simulatePayoff(cards, extraPayment, (a, b) => b.apr - a.apr);
+      // Snowball: sort by balance asc
+      const snowResult = simulatePayoff(cards, extraPayment, (a, b) => a.balance - b.balance);
+
+      avalancheBreakdown = avalResult.breakdown;
+      snowballBreakdown = snowResult.breakdown;
+
+      const fmtJPY = n => '¥' + Math.round(n).toLocaleString('ja-JP');
+
+      document.getElementById('avalMonths').textContent = `${avalResult.months}ヶ月`;
+      document.getElementById('avalInterest').textContent = fmtJPY(avalResult.totalInterest);
+      document.getElementById('avalTotal').textContent = fmtJPY(avalResult.totalPaid);
+
+      document.getElementById('snowMonths').textContent = `${snowResult.months}ヶ月`;
+      document.getElementById('snowInterest').textContent = fmtJPY(snowResult.totalInterest);
+      document.getElementById('snowTotal').textContent = fmtJPY(snowResult.totalPaid);
+
+      // Winner
+      const banner = document.getElementById('winnerBanner');
+      const saving = snowResult.totalInterest - avalResult.totalInterest;
+      if (Math.abs(saving) < 100) {
+        banner.textContent = '両方法の利息差はほぼなし';
+        banner.className = 'mt-4 p-4 rounded-xl text-center text-sm font-semibold bg-gray-100 text-gray-700';
+        document.getElementById('avalancheCard').classList.remove('border-blue-400', 'border-green-400');
+        document.getElementById('snowballCard').classList.remove('border-blue-400', 'border-green-400');
+      } else if (saving > 0) {
+        banner.innerHTML = `アバランチ法の方が利息を <strong>¥${Math.round(saving).toLocaleString()}</strong> 節約できます`; // xss-ok: computed
+        banner.className = 'mt-4 p-4 rounded-xl text-center text-sm font-semibold bg-blue-50 text-blue-700';
+        document.getElementById('avalancheCard').classList.add('border-blue-400');
+        document.getElementById('snowballCard').classList.remove('border-green-400');
+      } else {
+        banner.innerHTML = `スノーボール法の方が利息を <strong>¥${Math.round(-saving).toLocaleString()}</strong> 節約できます`; // xss-ok: computed
+        banner.className = 'mt-4 p-4 rounded-xl text-center text-sm font-semibold bg-green-50 text-green-700';
+        document.getElementById('snowballCard').classList.add('border-green-400');
+        document.getElementById('avalancheCard').classList.remove('border-blue-400');
+      }
+
+      // Payoff order
+      const sortedAval = [...cards].sort((a, b) => b.apr - a.apr);
+      const sortedSnow = [...cards].sort((a, b) => a.balance - b.balance);
+
+      document.getElementById('avalOrder').innerHTML = sortedAval.map(c => `<li class="py-1 border-b border-gray-100">${escapeHtml(c.name)} <span class="text-blue-600">(${c.apr}%)</span></li>`).join(''); // xss-ok: c.apr is computed number; c.name uses escapeHtml
+      document.getElementById('snowOrder').innerHTML = sortedSnow.map(c => `<li class="py-1 border-b border-gray-100">${escapeHtml(c.name)} <span class="text-green-600">(¥${Math.round(c.balance).toLocaleString()})</span></li>`).join(''); // xss-ok: c.balance is computed number; c.name uses escapeHtml
+
+      currentBreakdown = 'avalanche';
+      renderBreakdown();
+      document.getElementById('resultsArea').classList.remove('hidden');
+    }
+
+    function renderBreakdown() {
+      const data = currentBreakdown === 'avalanche' ? avalancheBreakdown : snowballBreakdown;
+      const tbody = document.getElementById('monthlyTableBody');
+      const fmtJPY = n => '¥' + Math.round(n).toLocaleString();
+      tbody.innerHTML = data.map(r => `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="px-3 py-1.5">${r.month}ヶ月目</td><td class="px-3 py-1.5 text-right font-mono">${fmtJPY(r.totalBalance)}</td><td class="px-3 py-1.5 text-right font-mono">${fmtJPY(r.payment)}</td><td class="px-3 py-1.5 text-right font-mono text-red-500">${fmtJPY(r.interest)}</td><td class="px-3 py-1.5 text-right font-mono text-green-600">${fmtJPY(r.principal)}</td></tr>`).join(''); // xss-ok: computed (r.month, r.totalBalance, r.payment, r.interest, r.principal)
+    }
+
+    document.getElementById('showAval').addEventListener('click', () => {
+      currentBreakdown = 'avalanche';
+      renderBreakdown();
+      document.getElementById('showAval').className = 'text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 font-medium px-3 py-1.5 rounded-lg transition focus:ring-2 focus:ring-blue-400 focus:outline-none';
+      document.getElementById('showAval').setAttribute('aria-pressed', 'true');
+      document.getElementById('showSnow').className = 'text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium px-3 py-1.5 rounded-lg transition focus:ring-2 focus:ring-gray-400 focus:outline-none';
+      document.getElementById('showSnow').setAttribute('aria-pressed', 'false');
+    });
+
+    document.getElementById('showSnow').addEventListener('click', () => {
+      currentBreakdown = 'snowball';
+      renderBreakdown();
+      document.getElementById('showSnow').className = 'text-sm bg-green-100 text-green-700 hover:bg-green-200 font-medium px-3 py-1.5 rounded-lg transition focus:ring-2 focus:ring-green-400 focus:outline-none';
+      document.getElementById('showSnow').setAttribute('aria-pressed', 'true');
+      document.getElementById('showAval').className = 'text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium px-3 py-1.5 rounded-lg transition focus:ring-2 focus:ring-gray-400 focus:outline-none';
+      document.getElementById('showAval').setAttribute('aria-pressed', 'false');
+    });
+
+    document.getElementById('addCardBtn').addEventListener('click', () => createCardRow());
+    document.getElementById('calcBtn').addEventListener('click', calculate);
+
+    // Load saved data
+    function loadFromStorage() {
+      try {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (data.extraPayment) document.getElementById('extraPayment').value = data.extraPayment;
+        if (data.cards && data.cards.length > 0) {
+          data.cards.forEach(c => createCardRow(c));
+          return;
+        }
+      } catch (e) {}
+      defaultCards.forEach(c => createCardRow(c));
+    }
+
+    loadFromStorage();
+    calculate();
+  </script>
+</body>
+</html>
